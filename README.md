@@ -47,7 +47,7 @@
 4. Edit the `proxy.yaml` if you want to use proxy
 5. Run the script to start, use :
    ```
-    	python main.py
+   python main.py
    ```
 	
 	

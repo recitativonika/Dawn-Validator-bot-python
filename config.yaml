@@ -1,0 +1,3 @@
+useProxy: false          # Set to true if you want to use proxies, false otherwise
+accountDelay: 121        # Delay in seconds for processing each account
+restartDelay: 241       # Delay in seconds for restarting the processing loop

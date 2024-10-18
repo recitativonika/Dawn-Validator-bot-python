@@ -3,7 +3,7 @@
 
 ## What needed
 - Python
-- 
+
 ## Features
 
 - Automatically send keep-alive requests to claim points.

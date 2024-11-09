@@ -133,4 +133,8 @@ async def process_accounts():
         print(f"📋 All accounts processed. Total points: \x1b[32m{total_points}\x1b[0m")
         await countdown(config['restartDelay'])
 
-asyncio.run(process_accounts())
+if __name__ == "__main__":
+    try:
+        asyncio.run(process_accounts())
+    except KeyboardInterrupt:
+        print("\nProcess interrupted by user. Exiting gracefully.")

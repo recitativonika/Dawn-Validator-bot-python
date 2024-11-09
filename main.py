@@ -1,25 +1,34 @@
 import requests
-import random
-import time
 import yaml
+import time
+import random
+import ssl
+import asyncio
 import warnings
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 warnings.simplefilter('ignore', InsecureRequestWarning)
 
-with open('./config.yaml') as f:
-    config = yaml.safe_load(f)
+with open('config.yaml') as config_file:
+    config = yaml.safe_load(config_file)
 
-with open('./accounts.yaml') as f:
-    accounts_data = yaml.safe_load(f)['accounts']
+with open('accounts.yaml') as accounts_file:
+    accounts_data = yaml.safe_load(accounts_file)
 
-with open('./proxy.yaml') as f:
-    proxies = yaml.safe_load(f)['proxies']
+with open('proxy.yaml') as proxy_file:
+    proxy_data = yaml.safe_load(proxy_file)
+
+proxies = proxy_data.get('proxies', [])
+
+if not isinstance(proxies, list):
+    raise ValueError("Proxies must be a list under the 'proxies' key")
 
 api_endpoints = {
     "keepalive": "https://www.aeropres.in/chromeapi/dawn/v1/userreward/keepalive",
     "getPoints": "https://www.aeropres.in/api/atom/v1/userreferral/getpoint"
 }
+
+ssl._create_default_https_context = ssl._create_unverified_context
 
 def random_delay(min_seconds, max_seconds):
     delay_time = random.randint(min_seconds, max_seconds)
@@ -27,37 +36,36 @@ def random_delay(min_seconds, max_seconds):
 
 def display_welcome():
     print("""
- -----------------------------------------------
-|🌟 DAWN Validator Extension automatic claim 🌟|
- -----------------------------------------------
+                \x1b[32m🌟 DAWN Validator Extension automatic claim 🌟\x1b[0m
+                          \x1b[36mGithub: recitativonika\x1b[0m
+                        \x1b[36mgithub.com/recitativonika\x1b[0m
     """)
 
-def fetch_points(headers):
+async def fetch_points(headers):
     try:
-        response = requests.get(api_endpoints['getPoints'], headers=headers, verify=False)
-        if response.status_code == 200 and response.json().get("status"):
-            data = response.json()["data"]
-            reward_point = data["rewardPoint"]
-            referral_point = data["referralPoint"]
+        response = requests.get(api_endpoints["getPoints"], headers=headers, verify=False)
+        if response.status_code == 200 and response.json().get('status'):
+            data = response.json().get('data', {})
+            reward_point = data.get('rewardPoint', {})
+            referral_point = data.get('referralPoint', {})
             total_points = (
-                reward_point.get("points", 0) +
-                reward_point.get("registerpoints", 0) +
-                reward_point.get("signinpoints", 0) +
-                reward_point.get("twitter_x_id_points", 0) +
-                reward_point.get("discordid_points", 0) +
-                reward_point.get("telegramid_points", 0) +
-                reward_point.get("bonus_points", 0) +
-                referral_point.get("commission", 0)
+                reward_point.get('points', 0) +
+                reward_point.get('registerpoints', 0) +
+                reward_point.get('signinpoints', 0) +
+                reward_point.get('twitter_x_id_points', 0) +
+                reward_point.get('discordid_points', 0) +
+                reward_point.get('telegramid_points', 0) +
+                reward_point.get('bonus_points', 0) +
+                referral_point.get('commission', 0)
             )
-            print(f"\n📊 Points: {total_points}")
             return total_points
         else:
-            print(f"❌ Failed to retrieve points: {response.json().get('message', 'Unknown error')}")
-    except Exception as e:
-        print(f"⚠️ Error during fetching points: {str(e)}")
+            print(f"❌ Failed to retrieve the points: {response.json().get('message', 'Unknown error')}")
+    except Exception as error:
+        print(f"⚠️ Error during fetching the points: {error}")
     return 0
 
-def keep_alive_request(headers, email):
+async def keep_alive_request(headers, email):
     payload = {
         "username": email,
         "extensionid": "fpdkjdnhkakefebpekbdhillbhonfjjp",
@@ -68,65 +76,61 @@ def keep_alive_request(headers, email):
     try:
         response = requests.post(api_endpoints["keepalive"], json=payload, headers=headers, verify=False)
         if response.status_code == 200:
-            print(f"✅ Keep-Alive Success for {email}: {response.json().get('message')}")
             return True
         else:
             print(f"🚫 Keep-Alive Error for {email}: {response.status_code} - {response.json().get('message', 'Unknown error')}")
-    except Exception as e:
-        print(f"⚠️ Error during Keep-Alive: {str(e)}")
+    except Exception as error:
+        print(f"⚠️ Error during keep-alive request for {email}: {error}")
     return False
 
-def countdown(seconds, message):
+async def process_account(account, proxy):
+    email = account['email']
+    token = account['token']
+    
+    headers = {
+        "Accept": "*/*",
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36",
+    }
+
+    if proxy:
+        headers['Proxy'] = proxy
+
+    points = await fetch_points(headers)
+
+    print(f"🔍 Processing: \x1b[36m{email}\x1b[0m, Proxy: {'\x1b[33m' + proxy + '\x1b[0m' if proxy else '\x1b[33mNo Proxy\x1b[0m'}, Points: \x1b[32m{points}\x1b[0m")
+
+    success = await keep_alive_request(headers, email)
+    if success:
+        print(f"✅ Keep-Alive Success for: \x1b[36m{email}\x1b[0m")
+    else:
+        print(f"⚠️ Error during keep-alive request for \x1b[36m{email}\x1b[0m: Request failed with status code 502")
+        print(f"❌ Keep-Alive Failed for: \x1b[36m{email}\x1b[0m")
+
+    return points
+
+async def countdown(seconds):
     for i in range(seconds, 0, -1):
-        print(f"⏳ {message} in: {i} seconds...", end='\r')
-        time.sleep(1)
+        print(f"⏳ Next process in: {i} seconds...", end='\r')
+        await asyncio.sleep(1)
     print("\n🔄 Restarting...\n")
 
-def countdown_account_delay(seconds):
-    for i in range(seconds, 0, -1):
-        print(f"⏳ Waiting for account processing in: {i} seconds...", end='\r')
-        time.sleep(1)
-    print("\n")
-
-def process_accounts():
+async def process_accounts():
     display_welcome()
     total_proxies = len(proxies)
 
     while True:
-        total_points = 0
+        account_promises = []
 
-        for i, account in enumerate(accounts_data):
-            email = account['email']
-            token = account['token']
-            proxy = proxies[i % total_proxies] if config["useProxy"] else None
+        for index, account in enumerate(accounts_data):
+            proxy = proxies[index % total_proxies] if config.get('useProxy') else None
+            account_promises.append(process_account(account, proxy))
 
-            headers = {
-                "Accept": "*/*",
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json",
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36",
-            }
+        points_array = await asyncio.gather(*account_promises)
+        total_points = sum(points_array)
 
-            if proxy:
-                headers['Proxy'] = proxy
-            
-            print("----------------------------------------------------------------")
-            print(f"🔍 Processing: {email} using proxy: {proxy or 'No Proxy'}...")
-            points = fetch_points(headers)
-            total_points += points
+        print(f"📋 All accounts processed. Total points: \x1b[32m{total_points}\x1b[0m")
+        await countdown(config['restartDelay'])
 
-            if points > 0:
-                success = keep_alive_request(headers, email)
-                if not success:
-                    print(f"✅ Keep-Alive Success for {email} account.\n")
-            else:
-                print(f"❌ No points available for {email}.")
-                print("----------------------------------------------------------------")
-
-            countdown_account_delay(config["accountDelay"])
-
-        print(f"📋 All accounts processed. Total points: {total_points}")
-        countdown(config["restartDelay"], "Next process")
-
-if __name__ == "__main__":
-    process_accounts()
+asyncio.run(process_accounts())

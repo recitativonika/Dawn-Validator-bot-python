@@ -62,7 +62,7 @@ def keep_alive_request(headers, email):
         "username": email,
         "extensionid": "fpdkjdnhkakefebpekbdhillbhonfjjp",
         "numberoftabs": 0,
-        "_v": "1.0.8"
+        "_v": "1.0.9"
     }
     
     try:

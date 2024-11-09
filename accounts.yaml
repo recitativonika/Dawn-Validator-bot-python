@@ -1,4 +1,3 @@
-accounts:
   - email: "account1@example.com"     # Replace with actual email
     token: "example_token_1"           # Replace with actual token
   - email: "account2@example.com"

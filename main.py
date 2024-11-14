@@ -99,7 +99,7 @@ async def process_account(account, proxy):
 
     points = await fetch_points(headers)
 
-    print(f"🔍 Processing: \x1b[36m{email}\x1b[0m, Proxy: {'\x1b[33m' + proxy + '\x1b[0m' if proxy else '\x1b[33mNo Proxy\x1b[0m'}, Points: \x1b[32m{points}\x1b[0m")
+    print(f"🔍 Processing: \x1b[36m{email}\x1b[0m, Proxy: \x1b[33m{proxy if proxy else 'No Proxy'}\x1b[0m, Points: \x1b[32m{points}\x1b[0m")
 
     success = await keep_alive_request(headers, email)
     if success:

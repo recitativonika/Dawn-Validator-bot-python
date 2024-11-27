@@ -83,7 +83,7 @@ async def keep_alive_request(headers, email):
             else:
                 print(f"🚫 Keep-Alive Error for {email}: {response.status_code} - {response.json().get('message', 'Unknown error')}")
     except Exception as error:
-        print(f"⚠️ Error during keep-alive request for {email}: trying again in next restart...")
+        print(f"⚠️ Error during keep-alive request for {email}: will try again on the next restart...")
     return False
 
 

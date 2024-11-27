@@ -60,9 +60,9 @@ async def fetch_points(headers):
             )
             return total_points
         else:
-            print(f"❌ Failed to retrieve the points: {response.json().get('message', 'Unknown error')}")
+            pass
     except Exception as error:
-        print(f"⚠️ Error during fetching the points: {error}")
+        pass
     return 0
 
 async def keep_alive_request(headers, email):
@@ -78,10 +78,14 @@ async def keep_alive_request(headers, email):
         if response.status_code == 200:
             return True
         else:
-            print(f"🚫 Keep-Alive Error for {email}: {response.status_code} - {response.json().get('message', 'Unknown error')}")
+            if response.status_code == 502:
+                print(f"\x1b[33m⚠️ Error during keep-alive request for {email}: will try again on the next restart...\x1b[0m")
+            else:
+                print(f"🚫 Keep-Alive Error for {email}: {response.status_code} - {response.json().get('message', 'Unknown error')}")
     except Exception as error:
-        print(f"⚠️ Error during keep-alive request for {email}: {error}")
+        print(f"⚠️ Error during keep-alive request for {email}: trying again in next restart...")
     return False
+
 
 async def process_account(account, proxy):
     email = account['email']
